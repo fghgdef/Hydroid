@@ -70,7 +70,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             make autoconf automake git python3 python-is-python3 binutils \
-            libtool-bin pkg-config flex bison gettext texinfo rsync wget
+            libtool-bin pkg-config flex bison gettext texinfo rsync wget \
+            gtk-doc-tools
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -100,19 +101,45 @@ jobs:
       - name: Download external libraries (QEMU, glib, libffi, pixman, SDL2)
         working-directory: limbo-engine/limbo-android-lib/src/main/jni
         run: |
-          wget -q https://download.qemu.org/qemu-5.1.0.tar.xz -P /tmp/
+          # Tries each mirror URL in order until one succeeds; some single
+          # upstream hosts are flaky/rate-limited on CI runners, so every
+          # library has at least one fallback mirror.
+          fetch() {
+            local out="$1"; shift
+            for url in "$@"; do
+              echo "Trying: $url"
+              if curl -fSL --retry 3 --retry-delay 5 --connect-timeout 20 -o "$out" "$url"; then
+                return 0
+              fi
+              echo "Failed: $url — trying next mirror"
+            done
+            echo "::error::All mirrors failed for $out"
+            return 1
+          }
+
+          fetch /tmp/qemu-5.1.0.tar.xz \
+            https://download.qemu.org/qemu-5.1.0.tar.xz \
+            https://ftp.fau.de/macports/distfiles/qemu/qemu-5.1.0.tar.xz \
+            https://kmq.jp.distfiles.macports.org/qemu/qemu-5.1.0.tar.xz
           tar -xJf /tmp/qemu-5.1.0.tar.xz && mv qemu-5.1.0 qemu
 
-          wget -q https://ftp.gnome.org/pub/GNOME/sources/glib/2.56/glib-2.56.1.tar.xz -P /tmp/
+          fetch /tmp/glib-2.56.1.tar.xz \
+            https://ftp.gnome.org/pub/GNOME/sources/glib/2.56/glib-2.56.1.tar.xz \
+            https://download.gnome.org/sources/glib/2.56/glib-2.56.1.tar.xz
           tar -xJf /tmp/glib-2.56.1.tar.xz && mv glib-2.56.1 glib
 
-          wget -q https://sourceware.org/pub/libffi/libffi-3.3.tar.gz -P /tmp/
+          fetch /tmp/libffi-3.3.tar.gz \
+            https://sourceware.org/pub/libffi/libffi-3.3.tar.gz \
+            https://github.com/libffi/libffi/releases/download/v3.3/libffi-3.3.tar.gz
           tar -xzf /tmp/libffi-3.3.tar.gz && mv libffi-3.3 libffi
 
-          wget -q https://www.cairographics.org/releases/pixman-0.40.0.tar.gz -P /tmp/
+          fetch /tmp/pixman-0.40.0.tar.gz \
+            https://www.cairographics.org/releases/pixman-0.40.0.tar.gz
           tar -xzf /tmp/pixman-0.40.0.tar.gz && mv pixman-0.40.0 pixman
 
-          wget -q https://www.libsdl.org/release/SDL2-2.0.8.tar.gz -P /tmp/
+          fetch /tmp/SDL2-2.0.8.tar.gz \
+            https://www.libsdl.org/release/SDL2-2.0.8.tar.gz \
+            https://github.com/libsdl-org/SDL/releases/download/release-2.0.8/SDL2-2.0.8.tar.gz
           tar -xzf /tmp/SDL2-2.0.8.tar.gz && mv SDL2-2.0.8 SDL2
 
       - name: Apply Limbo's upstream patches
@@ -144,3 +171,4 @@ jobs:
           name: limbo-x86_64-engine-apk
           path: limbo-engine/limbo-android-x86/build/outputs/apk/release/*.apk
           if-no-files-found: warn
+          
