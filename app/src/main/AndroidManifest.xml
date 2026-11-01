@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required for the online v86 WebView emulator -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+        Storage access for picking a local ISO/IMG file.
+        The app uses the Storage Access Framework (ACTION_OPEN_DOCUMENT) in
+        LimboStyleActivity, which does NOT require a runtime permission on any
+        API level. READ_EXTERNAL_STORAGE is declared only for compatibility
+        with pre-Android-13 devices that may need it for legacy file access.
+    -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!--
+        Android 11+ (API 30+) package visibility: required so this app can
+        detect/launch the separately-installed Limbo (real QEMU x86_64)
+        engine via packageManager.getLaunchIntentForPackage(). Without this,
+        Limbo would appear "not installed" even when it is.
+    -->
+    <queries>
+        <package android:name="com.limbo.emu.main" />
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:theme="@style/Theme.HybridEmulator">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.HybridEmulator">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".V86Activity"
+            android:exported="false"
+            android:label="@string/title_v86"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.HybridEmulator" />
+
+        <activity
+            android:name=".LimboStyleActivity"
+            android:exported="false"
+            android:label="@string/title_local_vm"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.HybridEmulator" />
+
+        <activity
+            android:name=".OfflineVmActivity"
+            android:exported="false"
+            android:label="@string/title_local_vm"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.HybridEmulator" />
+
+    </application>
+
+</manifest>

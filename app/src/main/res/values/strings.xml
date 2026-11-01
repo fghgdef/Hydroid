@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hybrid Emulator</string>
+    <string name="title_v86">Cloud v86 Emulator</string>
+    <string name="title_local_vm">Local ISO Virtual Machine</string>
+    <string name="tab_cloud">Cloud v86 Emulators</string>
+    <string name="tab_local">Local ISO VM</string>
+</resources>
