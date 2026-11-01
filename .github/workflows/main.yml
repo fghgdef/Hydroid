@@ -82,7 +82,7 @@ jobs:
         run: |
           SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           echo "Using SDK root: $SDK_ROOT"
-          CMDLINE_TOOLS_BIN=$(find "$SDK_ROOT/cmdline-tools" -maxdepth 2 -name "sdkmanager" -exec dirname {} \; | sort -r | head -n 1)
+          CMDLINE_TOOLS_BIN=$(find "$SDK_ROOT/cmdline-tools" -maxdepth 4 -type f -name "sdkmanager" -exec dirname {} \; | sort -r | head -n 1)
           if [ -z "$CMDLINE_TOOLS_BIN" ]; then
             echo "::error::Could not find sdkmanager under $SDK_ROOT/cmdline-tools"
             exit 1
