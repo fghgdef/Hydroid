@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -74,7 +74,7 @@ jobs:
             gtk-doc-tools
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -159,6 +159,15 @@ jobs:
           BUILD_GUEST: x86_64-softmmu
         run: make limbo
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Generate Gradle wrapper (not checked into upstream repo)
+        working-directory: limbo-engine
+        run: gradle wrapper
+
       - name: Build Limbo APK
         working-directory: limbo-engine
         run: |
@@ -171,4 +180,3 @@ jobs:
           name: limbo-x86_64-engine-apk
           path: limbo-engine/limbo-android-x86/build/outputs/apk/release/*.apk
           if-no-files-found: warn
-          
