@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Offline Virtual Machine</title>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+        height: 100%;
+        overflow: hidden;
+        font-family: monospace;
+    }
+    #status_bar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        color: #00e676;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.65);
+        padding: 6px 10px;
+        z-index: 10;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    #screen_container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    canvas {
+        max-width: 100%;
+        max-height: 100%;
+        image-rendering: pixelated;
+    }
+</style>
+</head>
+<body>
+    <div id="status_bar">Initializing offline v86 engine…</div>
+    <div id="screen_container"></div>
+
+    <script src="libv86.js"></script>
+    <script>
+        const statusBar = document.getElementById("status_bar");
+
+        function setStatus(text) {
+            statusBar.textContent = text;
+        }
+
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const ramMb = parseInt(params.get("ram") || "1024", 10);
+            const kind = params.get("kind") === "hda" ? "hda" : "cdrom";
+            const imageSize = parseInt(params.get("size") || "0", 10);
+
+            if (!imageSize || imageSize <= 0) {
+                throw new Error("Invalid boot image size");
+            }
+            if (typeof V86Starter !== "function" && typeof V86 !== "function") {
+                throw new Error("v86 engine failed to load (libv86.js missing)");
+            }
+
+            // This URL is served locally by OfflineVmActivity's WebViewClient,
+            // which streams the user-picked ISO/IMG file directly from
+            // device storage (with HTTP Range support) — no network involved.
+            const imageUrl = "https://appassets.androidplatform.net/iso/image";
+
+            const diskConfig = {
+                url: imageUrl,
+                async: true,
+                size: imageSize
+            };
+
+            const options = {
+                wasm_path: "v86.wasm",
+                memory_size: ramMb * 1024 * 1024,
+                vga_memory_size: 8 * 1024 * 1024,
+                screen_container: document.getElementById("screen_container"),
+                bios: { url: "bios/seabios.bin" },
+                vga_bios: { url: "bios/vgabios.bin" },
+                autostart: true
+            };
+
+            if (kind === "hda") {
+                options.hda = diskConfig;
+            } else {
+                options.cdrom = diskConfig;
+            }
+
+            setStatus("Loading BIOS and booting from " + kind.toUpperCase() + " (" + ramMb + " MB RAM)…");
+
+            const EngineConstructor = typeof V86Starter === "function" ? V86Starter : V86;
+            const emulator = new EngineConstructor(options);
+            window.hybridEmulatorInstance = emulator;
+
+            emulator.add_listener("emulator-ready", function () {
+                setStatus("Running — " + ramMb + " MB RAM");
+                setTimeout(function () { statusBar.style.display = "none"; }, 3000);
+            });
+
+            emulator.add_listener("download-error", function (e) {
+                setStatus("Error reading boot image: " + (e && e.file_name ? e.file_name : "unknown"));
+            });
+        } catch (err) {
+            setStatus("Boot failed: " + err.message);
+        }
+    </script>
+</body>
+</html>
