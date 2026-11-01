@@ -1,25 +1,27 @@
 name: Unzip to Root
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   unzip:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Extract ZIP into repository root
         run: |
-          # اسم ملف ZIP الموجود في جذر المستودع (عدّله إن كان مختلفاً)
           ZIP_FILE="aa.zip"
-
-          # فك الضغط مباشرة في جذر المستودع (github.workspace)
-          # -o يحدد مجلد الإخراج (بدون مسافة)، و "." يعني الجذر الحالي
           7z x "$ZIP_FILE" -o"." -y
 
-      - name: Show extracted contents
-        run: ls -la
+      - name: Commit and push extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "Extract ZIP to root"
+          git push
