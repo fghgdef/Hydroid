@@ -1,4 +1,4 @@
-name: Unzip to Root
+name: Extract Hyper-Train Contents to Root
 
 on:
   workflow_dispatch:
@@ -13,15 +13,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract ZIP into repository root
+      - name: Extract ZIP and move contents to root
         run: |
+          # 1. اسم ملف الـ ZIP (عدّله إذا كان اسمه مختلفاً)
           ZIP_FILE="aa.zip"
-          7z x "$ZIP_FILE" -o"." -y
+          
+          # 2. اسم المجلد الداخلي الذي تريد سحب محتوياته
+          INNER_DIR="HybridEmulator"
+          
+          # 3. إنشاء مجلد مؤقت لفك الضغط فيه أولاً
+          mkdir -p temp_extract
+          
+          # 4. فك الضغط في المجلد المؤقت
+          7z x "$ZIP_FILE" -o"temp_extract" -y
+          
+          # 5. نسخ محتويات المجلد الداخلي إلى الجذر (مع إخفاء الملفات المخفية)
+          # النجمة /* تعني "كل ما بداخل المجلد" وليس المجلد نفسه
+          cp -r temp_extract/"$INNER_DIR"/* .
+          
+          # 6. حذف المجلد المؤقت
+          rm -rf temp_extract
 
-      - name: Commit and push extracted files
+      - name: Commit and push to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff --staged --quiet || git commit -m "Extract ZIP to root"
+          git diff --staged --quiet || git commit -m "Extract $INNER_DIR contents to root"
           git push
