@@ -78,6 +78,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Set up Android SDK (provides sdkmanager)
+        uses: android-actions/setup-android@v3
+
       - name: Install Android NDK r23b
         run: |
           yes | sdkmanager --licenses > /dev/null || true
@@ -131,4 +134,3 @@ jobs:
           name: limbo-x86_64-engine-apk
           path: limbo-engine/limbo-android-x86/build/outputs/apk/release/*.apk
           if-no-files-found: warn
-          
