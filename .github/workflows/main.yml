@@ -78,14 +78,24 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK (provides sdkmanager)
-        uses: android-actions/setup-android@v3
+      - name: Locate sdkmanager on the runner's pre-installed Android SDK
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "Using SDK root: $SDK_ROOT"
+          CMDLINE_TOOLS_BIN=$(find "$SDK_ROOT/cmdline-tools" -maxdepth 2 -name "sdkmanager" -exec dirname {} \; | sort -r | head -n 1)
+          if [ -z "$CMDLINE_TOOLS_BIN" ]; then
+            echo "::error::Could not find sdkmanager under $SDK_ROOT/cmdline-tools"
+            exit 1
+          fi
+          echo "Found sdkmanager at: $CMDLINE_TOOLS_BIN"
+          echo "$CMDLINE_TOOLS_BIN" >> "$GITHUB_PATH"
+          echo "LIMBO_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
 
       - name: Install Android NDK r23b
         run: |
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install "ndk;23.2.8568313"
-          echo "LIMBO_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/23.2.8568313" >> "$GITHUB_ENV"
+          echo "LIMBO_NDK_ROOT=$LIMBO_SDK_ROOT/ndk/23.2.8568313" >> "$GITHUB_ENV"
 
       - name: Download external libraries (QEMU, glib, libffi, pixman, SDL2)
         working-directory: limbo-engine/limbo-android-lib/src/main/jni
