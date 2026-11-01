@@ -1,0 +1,49 @@
+name: Publish Beta Release
+
+on:
+  workflow_run:
+    workflows: ["Build Debug APK"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-beta:
+    # Publish only successful push/manual runs, never pull requests.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download APK artifacts from the completed build
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: release-assets
+
+      - name: Show downloaded files
+        run: |
+          echo "Downloaded build artifacts:"
+          find release-assets -type f -maxdepth 5 -print
+          if ! find release-assets -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "::error::No APK files were found in the build artifacts."
+            exit 1
+          fi
+
+      - name: Publish GitHub Beta Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: beta-${{ github.event.workflow_run.run_number }}-${{ github.event.workflow_run.run_attempt }}
+          name: Beta Build ${{ github.event.workflow_run.run_number }}.${{ github.event.workflow_run.run_attempt }}
+          prerelease: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/**/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
